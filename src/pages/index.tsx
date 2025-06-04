@@ -3,17 +3,37 @@ import type { NextPage } from 'next';
 import { Abi } from 'viem'
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
-import { useReadContract, UseReadContractParameters,UseReadContractReturnType  } from 'wagmi'
+import { useWatchBlockNumber,useReadContract, useWriteContract } from 'wagmi'
+import { type UseWriteContractParameters, UseReadContractParameters, UseReadContractReturnType } from 'wagmi'
 import RedPacketABI from '../abi/AssignRedPacket.json'
 const ContractConfig: Pick<UseReadContractParameters, 'address' | 'abi'> = {
   address: '0x54c1Bd6df115Aa06Dde30EFb3b179F1e61b6e37a',
   abi: RedPacketABI.abi as Abi
 }
 const Home: NextPage = () => {
-  const result:UseReadContractReturnType = useReadContract({
+  const result: UseReadContractReturnType = useReadContract({
     ...ContractConfig,
-    functionName: 'getBalance'
+    functionName: 'getBalance',
   })
+  useWatchBlockNumber({
+    onBlockNumber: (_blockNumber:number) => {
+      result.refetch()
+    }
+  })
+  const { writeContract } = useWriteContract()
+  
+  const handleDeposit = async () => {
+    try {
+      writeContract({
+        address: '0x54c1Bd6df115Aa06Dde30EFb3b179F1e61b6e37a',
+        abi: RedPacketABI.abi as Abi,
+        functionName: 'deposit',
+        value: BigInt(8e18) // 8 ETH
+      })
+    } catch (error) {
+      console.error('Deposit failed:', error)
+    }
+  }
   return (
     <div className={styles.container}>
       <Head>
@@ -27,10 +47,11 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <ConnectButton />
+        <button onClick={handleDeposit}>充值</button>
         <div>
           {result.isLoading && <p>Loading balance...</p>}
           {result.isError && <p>Error loading balance</p>}
-          {result.data && <p>Balance: {Number(result.data) / 1e18} ETH</p>}
+          {result.data ? <p>Balance: {Number(result.data) / 1e18} ETH</p> : <p>0 ETH</p>}
         </div>
       </main>
     </div>
