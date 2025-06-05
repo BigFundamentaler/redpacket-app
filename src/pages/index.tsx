@@ -1,41 +1,23 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import type { NextPage } from 'next';
-import { Abi } from 'viem'
 import Head from 'next/head';
-import styles from '../styles/Home.module.css';
-import { useWatchBlockNumber,useReadContract, useWriteContract } from 'wagmi'
-import { type UseWriteContractParameters, UseReadContractParameters, UseReadContractReturnType } from 'wagmi'
-import RedPacketABI from '../abi/AssignRedPacket.json'
-const ContractConfig: Pick<UseReadContractParameters, 'address' | 'abi'> = {
-  address: '0x54c1Bd6df115Aa06Dde30EFb3b179F1e61b6e37a',
-  abi: RedPacketABI.abi as Abi
-}
-const Home: NextPage = () => {
-  const result: UseReadContractReturnType = useReadContract({
-    ...ContractConfig,
-    functionName: 'getBalance',
-  })
-  useWatchBlockNumber({
-    onBlockNumber: (_blockNumber:number) => {
-      result.refetch()
-    }
-  })
-  const { writeContract } = useWriteContract()
-  
-  const handleDeposit = async () => {
-    try {
-      writeContract({
-        address: '0x54c1Bd6df115Aa06Dde30EFb3b179F1e61b6e37a',
-        abi: RedPacketABI.abi as Abi,
-        functionName: 'deposit',
-        value: BigInt(8e18) // 8 ETH
-      })
-    } catch (error) {
-      console.error('Deposit failed:', error)
-    }
-  }
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { UseRedPacket } from "@/hooks/useRedPacket";
+import { useState } from 'react';
+
+function Home() {
+  const {
+    balance,
+    isBalanceLoading,
+    isBalanceError,
+    deposit,
+  } = UseRedPacket();
+  const [amount, setAmount] = useState(0);
+  const type: string = typeof balance;
+  console.log("balance type:", type, "balance:", balance);
   return (
-    <div className={styles.container}>
+    <div>
       <Head>
         <title>RainbowKit App</title>
         <meta
@@ -45,13 +27,22 @@ const Home: NextPage = () => {
         <link href="/favicon.ico" rel="icon" />
       </Head>
 
-      <main className={styles.main}>
+      <main>
         <ConnectButton />
-        <button onClick={handleDeposit}>充值</button>
+
         <div>
-          {result.isLoading && <p>Loading balance...</p>}
-          {result.isError && <p>Error loading balance</p>}
-          {result.data ? <p>Balance: {Number(result.data) / 1e18} ETH</p> : <p>0 ETH</p>}
+          {isBalanceLoading && <p>Loading balance...</p>}
+          {isBalanceError && <p>Error loading balance</p>}
+          {balance ? <p>Contract Balance:{ } {(Number(balance) / 1e18)} ETH</p> : <p>0 ETH</p>}
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold underline">
+            Hello world!
+          </h1>
+          <Input value={amount} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setAmount(Number(e.target.value));
+          }} type="text" />
+          <Button onClick={() => { deposit(BigInt(amount)) }}>充值</Button>
         </div>
       </main>
     </div>
